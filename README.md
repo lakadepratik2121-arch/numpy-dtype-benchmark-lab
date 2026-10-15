@@ -2,7 +2,7 @@
 
 A hands-on benchmark showing how NumPy's **dtype** choice (int8 to int64, float16 to float64) changes **memory usage**, **speed** and **numerical precision** on 1-million-element arrays.
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lakadepratik2121/numpy-dtype-benchmark-lab/blob/main/numpy_dtype_benchmark_lab.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lakadepratik2121-arch/numpy-dtype-benchmark-lab/blob/main/numpy_dtype_benchmark_lab.ipynb)
 
 ## Problem
 
