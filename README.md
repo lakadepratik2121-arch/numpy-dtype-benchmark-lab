@@ -1,9 +1,10 @@
-# NumPy Data Type Memory & Performance Benchmark Lab
+]# NumPy Data Type Memory & Performance Benchmark Lab
 
 A hands-on benchmark showing how NumPy's **dtype** choice (int8 to int64, float16 to float64) changes **memory usage**, **speed** and **numerical precision** on 1-million-element arrays.
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/lakadepratik2121-arch/numpy-dtype-benchmark-lab/blob/main/numpy_dtype_benchmark_lab.ipynb)
 
+**Live website:** [lakadepratik2121-arch.github.io/numpy-dtype-benchmark-lab](https://lakadepratik2121-arch.github.io/numpy-dtype-benchmark-lab/)
 ## Problem
 
 Choosing the wrong dtype wastes memory, slows code down, or silently corrupts results (integer overflow, float rounding). This project measures those trade-offs with real numbers so dtype choice becomes a decision, not a default.
