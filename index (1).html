@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NumPy dtype Benchmark Lab</title>
+<meta name="description" content="A benchmark of NumPy data types: memory, speed, overflow and precision on 1-million-element arrays.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0F3;
+  --panel:#FFFFFF;
+  --ink:#16202E;
+  --muted:#566275;
+  --line:#CBD3DE;
+  --int:#2D56E8;
+  --float:#E0891A;
+  --bad:#C7372F;
+  --good:#1F8A5B;
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --body:"Newsreader",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:19px;line-height:1.6}
+h1,h2,h3{font-family:var(--display);line-height:1.08;margin:0;letter-spacing:-.02em}
+a{color:var(--int)}
+:focus-visible{outline:3px solid var(--float);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+p{max-width:62ch;margin:0 0 1em}
+
+/* hero */
+.hero{padding:56px 0 40px;border-bottom:1px solid var(--line)}
+.hero h1{font-size:clamp(2.4rem,7vw,5.2rem);font-weight:800;max-width:15ch}
+.hero .sub{font-size:1.25rem;color:var(--muted);margin-top:20px;max-width:52ch}
+.cells{margin-top:36px;display:grid;gap:10px}
+.crow{display:grid;grid-template-columns:84px 1fr 70px;align-items:center;gap:14px}
+.crow .nm{font-family:var(--display);font-weight:700;font-size:1rem}
+.crow .mb{font-family:var(--display);font-size:.95rem;color:var(--muted);text-align:right}
+.bytes{display:flex;gap:3px}
+.b{height:26px;flex:0 0 calc((100% - 21px)/8);border-radius:3px}
+.b.i{background:var(--int)}
+.b.f{background:var(--float)}
+.legend{margin-top:14px;font-size:.95rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+.links{margin-top:28px;display:flex;flex-wrap:wrap;gap:12px}
+.btn{font-family:var(--display);font-weight:700;font-size:1rem;text-decoration:none;padding:11px 20px;border-radius:8px;background:var(--ink);color:#fff;border:2px solid var(--ink)}
+.btn.alt{background:transparent;color:var(--ink)}
+.btn:hover{background:var(--int);border-color:var(--int);color:#fff}
+
+section{padding:56px 0;border-bottom:1px solid var(--line)}
+section h2{font-size:clamp(1.8rem,4vw,2.6rem);margin-bottom:14px;font-weight:700}
+
+/* bars */
+.bars{margin-top:24px;display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:84px 1fr 86px;gap:14px;align-items:center;font-family:var(--display)}
+.bar .track{background:#DDE3EB;border-radius:5px;height:24px;overflow:hidden}
+.bar .fill{height:100%;border-radius:5px}
+.bar .v{text-align:right;color:var(--muted);font-size:.95rem}
+.note{font-size:.95rem;color:var(--muted);margin-top:14px}
+
+/* tables */
+.tw{overflow-x:auto;margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.98rem}
+th,td{padding:11px 16px;text-align:right;border-bottom:1px solid var(--line);font-family:var(--display);font-weight:500}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:700;background:#F6F8FA}
+tr:last-child td{border-bottom:0}
+td.slow{color:var(--bad);font-weight:700}
+
+/* overflow lab */
+.lab{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;display:grid;gap:22px}
+.ctrls{display:flex;flex-wrap:wrap;gap:20px;align-items:end}
+label{display:grid;gap:6px;font-family:var(--display);font-weight:700;font-size:.95rem}
+select,input[type=number]{font:inherit;font-family:var(--display);font-size:1.1rem;padding:9px 12px;border:2px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);min-width:150px}
+.out{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.card{border:1px solid var(--line);border-radius:10px;padding:16px}
+.card small{display:block;font-family:var(--display);color:var(--muted);font-size:.9rem}
+.card strong{font-family:var(--display);font-size:2.2rem;font-weight:800;line-height:1.2}
+.card.warn strong{color:var(--bad)}
+.card.ok strong{color:var(--good)}
+.msg{font-size:1.02rem;margin:0;max-width:none}
+.bits{display:flex;gap:4px;flex-wrap:wrap}
+.bit{width:22px;height:30px;border-radius:4px;background:#DDE3EB;font-family:var(--display);font-size:.85rem;display:grid;place-items:center;color:var(--ink)}
+.bit.on{background:var(--int);color:#fff}
+
+/* guide */
+.guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:22px}
+.guide div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.guide b{font-family:var(--display);font-size:1.25rem;display:block;margin-bottom:4px}
+.guide span{font-size:1rem;color:var(--muted)}
+
+footer{padding:40px 0 60px;color:var(--muted);font-size:.98rem}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.88em;background:#DDE3EB;padding:1px 6px;border-radius:4px}
+
+@media (max-width:560px){
+  body{font-size:17px}
+  .crow,.bar{grid-template-columns:62px 1fr 64px;gap:8px}
+  .b{height:20px}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>One million numbers. 1 MB or 8 MB?</h1>
+    <p class="sub">I stored the same 1-million-element array in seven NumPy data types and measured memory, speed, overflow and precision. Each square below is one byte per element.</p>
+
+    <div class="cells" id="cells" role="img" aria-label="Bytes per element for each dtype: int8 1, int16 2, int32 4, int64 8, float16 2, float32 4, float64 8"></div>
+    <p class="legend"><i style="background:var(--int)"></i>integer types &nbsp; <i style="background:var(--float)"></i>float types</p>
+
+    <div class="links">
+      <a class="btn" href="https://github.com/YOUR_USERNAME/numpy-dtype-benchmark-lab">View code on GitHub</a>
+      <a class="btn alt" href="https://colab.research.google.com/github/YOUR_USERNAME/numpy-dtype-benchmark-lab/blob/main/numpy_dtype_benchmark_lab.ipynb">Run it in Colab</a>
+    </div>
+  </div>
+</header>
+
+<main>
+<section id="memory">
+  <div class="wrap">
+    <h2>Memory scales with bytes per element</h2>
+    <p>An array's size in memory is its element count times <code>itemsize</code>. Dropping from int64 to int8 cuts a 1M-element array from 8 MB to 1 MB, an 8x saving, with no code change beyond <code>astype()</code>.</p>
+    <div class="bars" id="membars"></div>
+  </div>
+</section>
+
+<section id="speed">
+  <div class="wrap">
+    <h2>Smaller is not always faster</h2>
+    <p>Time to multiply a 1M-element array by 2, best of several runs. The scale is logarithmic, because float16 is so much slower that a linear scale would hide everything else. Most CPUs have no native float16 arithmetic, so NumPy emulates it.</p>
+    <div class="bars" id="timebars"></div>
+    <p class="note">Sample run on Google Colab-class hardware. Your numbers will differ, so run the notebook to get your own.</p>
+
+    <h3 style="margin-top:36px;font-size:1.4rem">Multiply time as the array grows (ms)</h3>
+    <div class="tw"><table id="scale"></table></div>
+  </div>
+</section>
+
+<section id="overflow">
+  <div class="wrap">
+    <h2>Try an overflow</h2>
+    <p>Integers do not raise an error when a value is too big. They wrap around. Pick a type and a number to see what NumPy would store.</p>
+    <div class="lab">
+      <div class="ctrls">
+        <label>Type
+          <select id="t">
+            <option value="int8">int8</option>
+            <option value="uint8">uint8</option>
+            <option value="int16">int16</option>
+            <option value="uint16">uint16</option>
+          </select>
+        </label>
+        <label>Number to store
+          <input id="n" type="number" value="200" step="1">
+        </label>
+      </div>
+      <div class="out">
+        <div class="card"><small>You asked for</small><strong id="want">200</strong></div>
+        <div class="card" id="gotcard"><small>NumPy stores</small><strong id="got">-56</strong></div>
+        <div class="card"><small>Allowed range</small><strong id="rng" style="font-size:1.4rem">-128 to 127</strong></div>
+      </div>
+      <p class="msg" id="msg"></p>
+      <div><small style="font-family:var(--display);color:var(--muted)">Stored bits</small><div class="bits" id="bits" aria-label="Stored bit pattern"></div></div>
+    </div>
+
+    <h3 style="margin-top:36px;font-size:1.4rem">Float precision</h3>
+    <div class="tw"><table>
+      <tr><th>Check</th><th>float16</th><th>float32</th><th>float64</th></tr>
+      <tr><td>0.1 is stored as</td><td>0.09997559</td><td>0.10000000149</td><td>0.10000000000000001</td></tr>
+      <tr><td>Largest value</td><td>65,504</td><td>3.4e38</td><td>1.8e308</td></tr>
+      <tr><td>Sum of 1M values (true 29,481,082)</td><td class="slow">inf</td><td>29,481,082</td><td>29,481,082</td></tr>
+    </table></div>
+    <p class="note">float32 also drops small increments past 2<sup>24</sup>: 16,777,216 + 1 stays 16,777,216.</p>
+  </div>
+</section>
+
+<section id="guide">
+  <div class="wrap">
+    <h2>Which dtype should I use?</h2>
+    <p>Choose the smallest type that safely holds your data's range, then measure on your own workload.</p>
+    <div class="guide">
+      <div><b>uint8</b><span>Image pixels (0-255). A float64 image uses 8x the memory of the same uint8 image.</span></div>
+      <div><b>int8 / int16</b><span>Small counts, ratings, flags. Check the range with <code>np.iinfo</code> first.</span></div>
+      <div><b>int32 / int64</b><span>General integers and indexes.</span></div>
+      <div><b>float32</b><span>Large machine-learning and image arrays where memory matters.</span></div>
+      <div><b>float64</b><span>Scientific and financial maths that needs accuracy.</span></div>
+      <div><b>float16</b><span>Storage only. Slow to compute with and overflows at 65,504.</span></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Built with Python, NumPy, pandas and Matplotlib on Google Colab. Covers <code>dtype</code>, <code>astype()</code>, <code>itemsize</code>, <code>nbytes</code>, <code>np.iinfo</code>, <code>np.finfo</code> and <code>timeit</code>.</p>
+    <p>By YOUR NAME. <a href="https://github.com/YOUR_USERNAME/numpy-dtype-benchmark-lab">Source code</a></p>
+  </div>
+</footer>
+
+<script>
+const D = [
+  {n:"int8",   b:1, f:false, t:0.067},
+  {n:"int16",  b:2, f:false, t:0.136},
+  {n:"int32",  b:4, f:false, t:0.292},
+  {n:"int64",  b:8, f:false, t:0.765},
+  {n:"float16",b:2, f:true,  t:6.393},
+  {n:"float32",b:4, f:true,  t:0.317},
+  {n:"float64",b:8, f:true,  t:0.699}
+];
+const col = d => d.f ? "var(--float)" : "var(--int)";
+
+// hero byte cells
+const cells = document.getElementById("cells");
+cells.innerHTML = D.map(d => `
+  <div class="crow">
+    <span class="nm">${d.n}</span>
+    <div class="bytes">${Array.from({length:d.b},()=>`<span class="b ${d.f?"f":"i"}"></span>`).join("")}</div>
+    <span class="mb">${d.b} MB</span>
+  </div>`).join("");
+
+// memory bars
+document.getElementById("membars").innerHTML = D.map(d => `
+  <div class="bar"><span>${d.n}</span>
+  <div class="track"><div class="fill" style="width:${d.b/8*100}%;background:${col(d)}"></div></div>
+  <span class="v">${d.b} MB</span></div>`).join("");
+
+// time bars (log scale)
+const lo = Math.log10(0.05), hi = Math.log10(10);
+document.getElementById("timebars").innerHTML = D.map(d => {
+  const w = Math.max(3, (Math.log10(d.t)-lo)/(hi-lo)*100);
+  return `<div class="bar"><span>${d.n}</span>
+  <div class="track"><div class="fill" style="width:${w}%;background:${col(d)}"></div></div>
+  <span class="v">${d.t} ms</span></div>`;
+}).join("");
+
+// scaling table
+const S = {
+  "100,000":    [0.004,0.006,0.009,0.061,0.641,0.020,0.055],
+  "1,000,000":  [0.067,0.136,0.292,0.765,6.393,0.317,0.699],
+  "10,000,000": [1.272,3.269,11.354,22.665,63.864,14.472,28.734]
+};
+let h = "<tr><th>Elements</th>" + D.map(d=>`<th>${d.n}</th>`).join("") + "</tr>";
+for (const k in S){
+  const row = S[k], mx = Math.max(...row);
+  h += `<tr><td>${k}</td>` + row.map(v=>`<td class="${v===mx?"slow":""}">${v}</td>`).join("") + "</tr>";
+}
+document.getElementById("scale").innerHTML = h;
+
+// overflow lab
+const T = {int8:[8,true], uint8:[8,false], int16:[16,true], uint16:[16,false]};
+const $ = id => document.getElementById(id);
+function wrap(v, bits, signed){
+  const m = 2n ** BigInt(bits);
+  let x = ((BigInt(v) % m) + m) % m;
+  if (signed && x >= m/2n) x -= m;
+  return x;
+}
+function update(){
+  const [bits, signed] = T[$("t").value];
+  const raw = $("n").value;
+  const v = Number.isFinite(Number(raw)) && raw !== "" ? Math.trunc(Number(raw)) : 0;
+  const lo = signed ? -(2**(bits-1)) : 0;
+  const hiV = signed ? 2**(bits-1)-1 : 2**bits-1;
+  const got = wrap(v, bits, signed);
+  const bad = BigInt(v) !== got;
+  $("want").textContent = v;
+  $("got").textContent = got.toString();
+  $("rng").textContent = lo + " to " + hiV;
+  $("gotcard").className = "card " + (bad ? "warn" : "ok");
+  $("msg").textContent = bad
+    ? `${v} does not fit in ${$("t").value}. NumPy wraps it around to ${got} with no error.`
+    : `${v} fits in ${$("t").value}, so it is stored exactly.`;
+  const u = ((got % (2n**BigInt(bits))) + 2n**BigInt(bits)) % 2n**BigInt(bits);
+  const s = u.toString(2).padStart(bits,"0");
+  $("bits").innerHTML = [...s].map(c=>`<span class="bit ${c==="1"?"on":""}">${c}</span>`).join("");
+}
+$("t").addEventListener("change", update);
+$("n").addEventListener("input", update);
+update();
+</script>
+</body>
+</html>
